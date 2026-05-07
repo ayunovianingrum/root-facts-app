@@ -1,12 +1,16 @@
 import { useReducer, useMemo } from 'react';
+import { APP_STATUS, MODEL_STATUS } from '../utils/config';
 
 const initialState = {
-  appState: 'idle',
+  appState: APP_STATUS.idle,
   isRunning: false,
-  modelStatus: 'Memuat Model AI...',
+  modelStatus: MODEL_STATUS.preparing,
   detectionResult: null,
   funFactData: null,
-  error: null,
+  error: {
+    type: '',
+    message: '',
+  },
   services: {
     detector: null,
     camera: null,
@@ -54,7 +58,7 @@ function appReducer(state, action) {
         appState: 'idle',
         detectionResult: null,
         funFactData: null,
-        error: null,
+        error: { type: '', message: '' },
       };
 
     default:

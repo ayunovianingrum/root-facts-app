@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Camera, Mic, ScanLine } from 'lucide-react';
-import { TONE_CONFIG } from '../utils/config';
+import { TONE_CONFIG, MODEL_STATUS, CAMERA_LABEL } from '../utils/config';
 
 function CameraSection({
   isRunning,
@@ -8,13 +8,32 @@ function CameraSection({
   onToneChange,
   services,
   modelStatus,
-  error,
-  currentTone
+  currentTone,
+  appState,
+  cameraState,
 }) {
+  const [selectedCamera, setSelectedCamera] = cameraState;
   const [fps, setFps] = useState(30);
-  const [cameraType, setCameraType] = useState('default');
+  const [cameraList, setCameraList] = useState([]);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const loadCameras = async () => {
+      if (services.camera) {
+        try {
+          const cameras = await services.camera.loadCameras();
+          setCameraList(cameras);
+          if (cameras.length > 0 && !selectedCamera) {
+            handleCameraChange(cameras[0].deviceId);
+          }
+        } catch (error) {
+          console.error('Failed to get camera lists:', error);
+        }
+      }
+    };
+    loadCameras();
+  }, [services.camera]);
 
   useEffect(() => {
     if (services.camera) {
@@ -33,10 +52,10 @@ function CameraSection({
     }
   }, [fps, services.camera]);
 
-  const handleCameraChange = (newCameraType) => {
-    setCameraType(newCameraType);
+  const handleCameraChange = (newCamera) => {
+    setSelectedCamera(newCamera);
     if (services.camera && services.camera.isActive()) {
-      services.camera.startCamera();
+      services.camera.startCamera(newCamera);
     }
   };
 
@@ -51,7 +70,7 @@ function CameraSection({
     }
   };
 
-  const isModelReady = modelStatus === 'Model AI Siap';
+  const isModelReady = modelStatus === MODEL_STATUS.ready;
   const buttonDisabled = !isModelReady;
   const buttonText = isRunning ? 'Stop Scan' : 'Mulai Scan';
 
@@ -67,26 +86,20 @@ function CameraSection({
             playsInline
             className={isRunning ? '' : 'hidden'}
           />
-          
-          <canvas
-            ref={canvasRef}
-            id="media-canvas"
-            className="hidden"
-          />
+
+          <canvas ref={canvasRef} id="media-canvas" className="hidden" />
 
           <div className={`camera-overlay ${isRunning ? 'active' : ''}`}>
-            <div className="overlay-frame"></div>
+            <div className="overlay-wrapper">
+              <div className="scan-line" />
+              <div className="overlay-frame"> </div>
+            </div>
           </div>
 
           {!isRunning && (
             <div className="camera-placeholder">
               <Camera size={48} />
-              <p>Kamera tidak aktif</p>
-              {error && (
-                <p style={{ color: '#ef4444', fontSize: '0.8125rem', marginTop: '0.5rem' }}>
-                  {error}
-                </p>
-              )}
+              <p>{CAMERA_LABEL[appState]}</p>
             </div>
           )}
         </div>
@@ -105,16 +118,24 @@ function CameraSection({
         </div>
 
         <div className="settings-bar">
-          <div className="setting-item">
+          <div className="setting-item cs-select">
             <Camera size={16} />
             <select
               id="camera-select"
-              value={cameraType}
+              value={selectedCamera}
               onChange={(e) => handleCameraChange(e.target.value)}
-              disabled={isRunning}
+              disabled={isRunning || !cameraList.length}
             >
-              <option value="default">Belakang</option>
-              <option value="front">Depan</option>
+              {!selectedCamera && (
+                <option value="" disabled>
+                  {!cameraList.length ? 'No cameras found' : 'Loading...'}
+                </option>
+              )}
+              {cameraList.map((camera) => (
+                <option key={camera.deviceId} value={camera.deviceId}>
+                  {camera.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -132,15 +153,15 @@ function CameraSection({
             />
           </div>
 
-          <div className="setting-item tone-setting">
+          <div className="setting-item cs-select">
             <Mic size={16} />
             <select
               id="tone-select"
-              value={currentTone || 'normal'}
+              value={currentTone || TONE_CONFIG.defaultTone}
               onChange={handleToneChange}
               disabled={isRunning}
             >
-              {TONE_CONFIG.availableTones.map(option => (
+              {TONE_CONFIG.availableTones.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>

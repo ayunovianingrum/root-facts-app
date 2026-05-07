@@ -1,6 +1,21 @@
-import { Sparkles, Search, CheckCircle, Lightbulb, Copy, Share2 } from 'lucide-react';
+import {
+  Sparkles,
+  Search,
+  CheckCircle,
+  Lightbulb,
+  Copy,
+  Share2,
+} from 'lucide-react';
 
-function InfoPanel({ appState, detectionResult, funFactData, error, onCopyFact }) {
+function InfoPanel({
+  appState,
+  detectionResult,
+  funFactData,
+  error,
+  onCopyFact,
+  copyFeedback,
+  onRetry,
+}) {
   const isIdle = appState === 'idle';
   const isAnalyzing = appState === 'analyzing';
   const isResult = appState === 'result';
@@ -10,12 +25,15 @@ function InfoPanel({ appState, detectionResult, funFactData, error, onCopyFact }
       <div className="idle-icon">
         <Sparkles size={40} />
       </div>
-      <h2>Scan Sayuran</h2>
-      <p>Ketuk tombol di bawah untuk memulai dan temukan fakta menarik tentang sayuran!</p>
-      {error && (
-        <p style={{ color: '#ef4444', fontSize: '0.8125rem', marginTop: '1rem' }}>
-          {error}
-        </p>
+      <h2>Scan Vegetable</h2>
+      <p>
+        Tap the scan button above to get started and discover interesting facts
+        about vegetables!
+      </p>
+      {error?.type === 'init' && (
+        <button className="reload-model-btn" onClick={onRetry}>
+          Try to Reload Model
+        </button>
       )}
     </div>
   );
@@ -28,8 +46,8 @@ function InfoPanel({ appState, detectionResult, funFactData, error, onCopyFact }
           <Search size={24} />
         </div>
       </div>
-      <h2>Mencari...</h2>
-      <p>Sedang mengidentifikasi sayuran Anda</p>
+      <h2>Analyzing...</h2>
+      <p>Identifying your vegetable...</p>
     </div>
   );
 
@@ -43,21 +61,24 @@ function InfoPanel({ appState, detectionResult, funFactData, error, onCopyFact }
         return (
           <div id="fun-fact-loading" className="fun-fact-loading">
             <div className="fun-fact-loading-spinner"></div>
-            <span>Memuat fakta menarik...</span>
+            <span>Loading interesting facts...</span>
           </div>
         );
       }
 
       if (funFactData === 'error') {
         return (
-          <div style={{ 
-            padding: '0.75rem', 
-            background: '#fef3c7', 
-            borderRadius: 'var(--radius-sm)',
-            fontSize: '0.875rem',
-            color: '#92400e'
-          }}>
-            Gagal menghasilkan fakta menarik. Mode offline atau layanan tidak tersedia.
+          <div
+            style={{
+              padding: '0.75rem',
+              background: '#fef3c7',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: '0.875rem',
+              color: '#92400e',
+            }}
+          >
+            Failed to generate interesting facts. Offline mode or service
+            unavailable.
           </div>
         );
       }
@@ -91,23 +112,30 @@ function InfoPanel({ appState, detectionResult, funFactData, error, onCopyFact }
               </button>
             )}
           </div>
+          <p
+            className={`copy-feedback ${!copyFeedback.status ? 'feedback-hidden' : ''} ${copyFeedback.status === 'error' ? 'feedback-error' : ''}`}
+          >
+            {copyFeedback.message}
+          </p>
         </div>
 
         <div className="confidence-bar">
-          <span className="confidence-label">Kepercayaan</span>
+          <span className="confidence-label">Confidence Score</span>
           <div className="confidence-track">
-            <div 
+            <div
               id="confidence-fill"
-              className="confidence-fill" 
+              className="confidence-fill"
               style={{ width: `${confidence}%` }}
             ></div>
           </div>
-          <span id="detected-confidence" className="confidence-value">{confidence}%</span>
+          <span id="detected-confidence" className="confidence-value">
+            {confidence}%
+          </span>
         </div>
 
         <div className="share-hint">
           <Share2 size={14} />
-          <span>Salin dan bagikan ke teman!</span>
+          <span>Copy and share with your friends!</span>
         </div>
       </div>
     );
