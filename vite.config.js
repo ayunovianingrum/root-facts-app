@@ -1,27 +1,31 @@
-import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import path from 'path';
+import { defineConfig } from 'vite';
+import { fileURLToPath } from 'url';
 import { VitePWA } from 'vite-plugin-pwa';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   optimizeDeps: {
     exclude: ['@huggingface/transformers'],
+  },
+  assetsInclude: ['**/*.onnx', '**/*.wasm'],
+  worker: {
+    format: 'es',
   },
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      includeAssets: [
-        'model/model.json',
-        'model/weights.bin',
-        'model/metadata.json',
-      ],
+      includeAssets: ['model/**/*', '**/*.onnx', '**/*.wasm'],
 
       workbox: {
         maximumFileSizeToCacheInBytes: 50 * 1024 * 1024,
         globPatterns: [
-          '**/*.{js,css,html,ico,png,svg,wasm}',
-          'model/*.{json,bin}',
+          '**/*.{js,css,html,ico,png,svg,wasm,onnx}',
+          'model/**/*',
         ],
         runtimeCaching: [
           {
@@ -81,7 +85,7 @@ export default defineConfig({
             src: '/icons/maskable-icon-x192.png',
             sizes: '192x192',
             type: 'image/png',
-            purpose: 'any',
+            purpose: 'maskable',
           },
           {
             src: '/icons/maskable-icon-x512.png',
@@ -145,11 +149,13 @@ export default defineConfig({
   ],
   build: {
     target: 'esnext',
+    chunkSizeWarningLimit: 10000,
     rollupOptions: {
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom'],
           tensorflow: ['@tensorflow/tfjs', '@tensorflow/tfjs-backend-webgpu'],
+          transformers: ['@huggingface/transformers'],
         },
       },
     },
